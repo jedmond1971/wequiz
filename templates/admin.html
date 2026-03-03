@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}WeQuiz — Admin Panel{% endblock %}
+
+{% block body %}
+<div class="admin-layout">
+  <!-- Nav -->
+  <nav class="admin-nav">
+    <div class="logo">We<span>Quiz</span> <span style="font-size:0.9rem;opacity:0.6;font-weight:700;">Admin</span></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-success" id="btn-new-set">+ New Question Set</button>
+      <a href="/admin/logout" class="btn btn-ghost" style="font-size:0.85rem;">Log Out</a>
+    </div>
+  </nav>
+
+  <main class="admin-main">
+    <div id="status-msg"></div>
+
+    <!-- Question sets grid -->
+    <div>
+      <h2 style="font-size:1.2rem;font-weight:800;opacity:0.75;margin-bottom:4px;">Question Sets</h2>
+      <p style="font-size:0.85rem;opacity:0.5;margin-bottom:12px;">Create and manage quiz question sets, then launch a live game.</p>
+      <div class="sets-grid" id="sets-grid">
+        <div style="opacity:0.5;padding:20px;text-align:center;" id="sets-loading">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Set editor (shown when editing a set) -->
+    <div id="set-editor" class="set-editor hidden">
+      <div class="set-editor-header">
+        <div>
+          <input id="editor-set-name" type="text" style="font-size:1.1rem;font-weight:800;padding:8px 12px;border-radius:8px;max-width:300px;" placeholder="Set name">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-add-question">+ Add Question</button>
+          <button class="btn btn-ghost" id="btn-save-set">Save Name</button>
+          <button class="btn btn-ghost" id="btn-close-editor" style="opacity:0.6;">✕ Close</button>
+        </div>
+      </div>
+      <div class="question-list" id="question-list"></div>
+      <div id="no-questions" class="hidden" style="text-align:center;opacity:0.45;padding:32px;font-weight:700;">
+        No questions yet. Click "+ Add Question" to start.
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Question modal -->
+<div class="modal-overlay hidden" id="q-modal">
+  <div class="modal">
+    <h3 id="modal-title">Add Question</h3>
+    <input type="hidden" id="modal-q-id">
+    <div class="form-group">
+      <label>Question Text</label>
+      <textarea id="modal-q-text" rows="3" placeholder="What is the capital of France?"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Answers <span style="font-size:0.8rem;opacity:0.6;">(select the correct one)</span></label>
+      <div class="choice-row">
+        <div class="choice-dot choice-dot-0"></div>
+        <input type="text" id="choice-0" placeholder="Answer A" class="choice-input">
+        <input type="radio" name="correct" value="0" title="Correct answer">
+      </div>
+      <div class="choice-row">
+        <div class="choice-dot choice-dot-1"></div>
+        <input type="text" id="choice-1" placeholder="Answer B" class="choice-input">
+        <input type="radio" name="correct" value="1" title="Correct answer">
+      </div>
+      <div class="choice-row">
+        <div class="choice-dot choice-dot-2"></div>
+        <input type="text" id="choice-2" placeholder="Answer C" class="choice-input">
+        <input type="radio" name="correct" value="2" title="Correct answer">
+      </div>
+      <div class="choice-row">
+        <div class="choice-dot choice-dot-3"></div>
+        <input type="text" id="choice-3" placeholder="Answer D" class="choice-input">
+        <input type="radio" name="correct" value="3" title="Correct answer">
+      </div>
+    </div>
+    <div class="form-group" style="flex-direction:row;align-items:center;gap:12px;">
+      <label style="white-space:nowrap;">Time limit</label>
+      <input type="number" id="modal-time" value="20" min="5" max="120">
+      <span style="opacity:0.6;font-size:0.85rem;">seconds</span>
+    </div>
+    <div id="modal-error" class="error-msg hidden"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modal-cancel">Cancel</button>
+      <button class="btn btn-primary" id="modal-save">Save Question</button>
+    </div>
+  </div>
+</div>
+
+<!-- New set name modal -->
+<div class="modal-overlay hidden" id="new-set-modal">
+  <div class="modal">
+    <h3>New Question Set</h3>
+    <div class="form-group">
+      <label>Set Name</label>
+      <input type="text" id="new-set-name" placeholder="e.g. General Knowledge" maxlength="60">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="new-set-cancel">Cancel</button>
+      <button class="btn btn-primary" id="new-set-create">Create Set</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

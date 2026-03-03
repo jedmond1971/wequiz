@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}WeQuiz — Host View{% endblock %}
+
+{% block body %}
+<div class="page-full" id="app">
+  <!-- Header always visible -->
+  <div class="host-header">
+    <div class="logo" style="font-size:1.4rem;">We<span>Quiz</span></div>
+    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+      <div class="room-code-display" style="text-align:left;">
+        <div class="room-code-label">Room Code</div>
+        <div class="room-code-value" id="hdr-code" style="font-size:2rem;letter-spacing:4px;">{{ room_code }}</div>
+      </div>
+      <div id="hdr-set-name" style="opacity:0.6;font-size:0.85rem;font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-danger" id="btn-end-q" style="display:none;">End Question</button>
+      <button class="btn btn-primary" id="btn-next" style="display:none;">Next Question →</button>
+      <a href="/admin" class="btn btn-ghost" style="font-size:0.82rem;">← Admin</a>
+    </div>
+  </div>
+
+  <!-- LOBBY screen -->
+  <div id="screen-lobby" class="host-body">
+    <div class="room-code-display">
+      <div class="room-code-label">Players join at <strong id="join-url"></strong></div>
+      <div class="room-code-value" id="lobby-code">{{ room_code }}</div>
+    </div>
+    <div>
+      <div class="player-count-big" id="lobby-count">0</div>
+      <div style="opacity:0.6;font-weight:700;margin-top:4px;">players joined</div>
+    </div>
+    <div class="player-list" id="lobby-players"></div>
+    <button class="btn btn-success btn-lg" id="btn-start" disabled>
+      Start Game
+    </button>
+    <div id="lobby-set-name" style="opacity:0.5;font-size:0.85rem;font-weight:700;"></div>
+  </div>
+
+  <!-- QUESTION screen -->
+  <div id="screen-question" class="page-full hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 24px;gap:12px;">
+      <div class="q-counter" id="hq-counter">Q 1/5</div>
+      <div class="timer-wrap">
+        <svg viewBox="0 0 80 80">
+          <circle class="timer-track" cx="40" cy="40" r="36"/>
+          <circle class="timer-progress" id="host-timer-circle" cx="40" cy="40" r="36"/>
+        </svg>
+        <span class="timer-text" id="host-timer-text">20</span>
+      </div>
+      <div class="answer-progress" id="hq-answered">0/0 answered</div>
+    </div>
+    <div class="question-body" style="flex:1;">
+      <div class="question-text" id="hq-text"></div>
+    </div>
+    <div class="host-q-choices" style="padding:0 24px 20px;margin:0 auto;width:100%;max-width:600px;display:grid;grid-template-columns:1fr 1fr;gap:10px;" id="hq-choices"></div>
+  </div>
+
+  <!-- LEADERBOARD screen -->
+  <div id="screen-leaderboard" class="hidden">
+    <div class="leaderboard-screen" id="host-lb"></div>
+  </div>
+
+  <!-- FINAL screen -->
+  <div id="screen-final" class="hidden">
+    <div class="final-screen">
+      <div class="trophy">🏆</div>
+      <div class="final-title">Game Over!</div>
+      <div style="opacity:0.6;font-weight:700;margin-bottom:8px;">Final Standings</div>
+      <div style="width:100%;max-width:500px;" id="final-lb"></div>
+      <a href="/admin" class="btn btn-primary btn-lg" style="margin-top:16px;">Back to Admin</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>const ROOM_CODE = "{{ room_code }}";</script>
+<script src="{{ url_for('static', filename='js/host.js') }}"></script>
+{% endblock %}

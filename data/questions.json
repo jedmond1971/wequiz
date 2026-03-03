@@ -1,0 +1,85 @@
+{
+  "sets": [
+    {
+      "id": "demo-set-001",
+      "name": "General Knowledge",
+      "questions": [
+        {
+          "id": "q1",
+          "text": "What is the capital of France?",
+          "choices": [
+            "London",
+            "Paris",
+            "Berlin",
+            "Madrid"
+          ],
+          "correct": 1,
+          "time_limit": 20
+        },
+        {
+          "id": "q2",
+          "text": "How many sides does a hexagon have?",
+          "choices": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ],
+          "correct": 1,
+          "time_limit": 15
+        },
+        {
+          "id": "q3",
+          "text": "Which planet is known as the Red Planet?",
+          "choices": [
+            "Venus",
+            "Jupiter",
+            "Mars",
+            "Saturn"
+          ],
+          "correct": 2,
+          "time_limit": 20
+        },
+        {
+          "id": "q4",
+          "text": "What is 12 \u00d7 12?",
+          "choices": [
+            "124",
+            "144",
+            "132",
+            "148"
+          ],
+          "correct": 1,
+          "time_limit": 15
+        },
+        {
+          "id": "q5",
+          "text": "Which element has the chemical symbol 'O'?",
+          "choices": [
+            "Gold",
+            "Iron",
+            "Oxygen",
+            "Osmium"
+          ],
+          "correct": 2,
+          "time_limit": 20
+        }
+      ]
+    },
+    {
+      "id": "a86e1f6c-f2d5-48f9-8baa-fd9d96e8df9d",
+      "name": "History",
+      "questions": []
+    },
+    {
+      "id": "652521f7-9afc-4793-be19-3388b4d17c86",
+      "name": "Disney",
+      "questions": []
+    },
+    {
+      "id": "09b87e77-1502-4a35-94bb-4e8620f9b959",
+      "name": "Movies & TV",
+      "questions": []
+    }
+  ]
+}

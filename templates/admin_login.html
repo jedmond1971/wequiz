@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}WeQuiz — Admin Login{% endblock %}
+
+{% block body %}
+<div class="admin-login-wrap">
+  <div class="page" style="gap:20px;">
+    <div class="logo">We<span>Quiz</span></div>
+    <div class="card">
+      <h2>🔒 Admin Login</h2>
+      <form method="POST" action="/admin" autocomplete="off">
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password"
+                 placeholder="Enter admin password" autofocus>
+        </div>
+        {% if error %}
+        <div class="error-msg" style="margin-bottom:12px;">{{ error }}</div>
+        {% endif %}
+        <button type="submit" class="btn btn-primary btn-full btn-lg">Sign In</button>
+      </form>
+    </div>
+    <p style="font-size:0.8rem;opacity:0.45;text-align:center;">
+      Default password: <code>admin123</code><br>
+      Set <code>ADMIN_PASSWORD</code> env var to change it.
+    </p>
+  </div>
+</div>
+{% endblock %}
