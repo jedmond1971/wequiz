@@ -1,5 +1,88 @@
 /* WeQuiz Player View */
 
+// ── SoundManager ──────────────────────────────────────────────────────────────
+
+const SoundManager = (() => {
+  let ctx = null;
+  let muted = localStorage.getItem('wequiz_muted') === 'true';
+
+  // Pre-warm AudioContext on the first user gesture so socket-driven sounds
+  // (question_start etc.) play without hitting the browser autoplay block.
+  function _unlock() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    ['click', 'touchstart', 'keydown'].forEach(ev =>
+      document.removeEventListener(ev, _unlock, true));
+  }
+  ['click', 'touchstart', 'keydown'].forEach(ev =>
+    document.addEventListener(ev, _unlock, { capture: true }));
+
+  function getCtx() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function tone(freq, type, startTime, duration, gainVal, endFreq) {
+    const c = getCtx();
+    const osc = c.createOscillator();
+    const g = c.createGain();
+    osc.connect(g);
+    g.connect(c.destination);
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, startTime);
+    if (endFreq !== undefined) osc.frequency.linearRampToValueAtTime(endFreq, startTime + duration);
+    g.gain.setValueAtTime(gainVal, startTime);
+    g.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+    osc.start(startTime);
+    osc.stop(startTime + duration + 0.02);
+  }
+
+  return {
+    get muted() { return muted; },
+
+    toggleMute() {
+      muted = !muted;
+      localStorage.setItem('wequiz_muted', String(muted));
+      return muted;
+    },
+
+    questionDing() {
+      if (muted) return;
+      const now = getCtx().currentTime;
+      tone(440, 'sine', now, 0.08, 0.35);
+      tone(660, 'sine', now + 0.09, 0.18, 0.35);
+    },
+
+    tapClick() {
+      if (muted) return;
+      const now = getCtx().currentTime;
+      tone(900, 'square', now, 0.06, 0.18, 500);
+    },
+
+    correctChime() {
+      if (muted) return;
+      const now = getCtx().currentTime;
+      tone(523, 'sine', now, 0.18, 0.45);        // C5
+      tone(784, 'sine', now + 0.20, 0.30, 0.45); // G5
+    },
+
+    wrongBuzzer() {
+      if (muted) return;
+      const now = getCtx().currentTime;
+      tone(280, 'sawtooth', now, 0.35, 0.35, 130);
+    },
+
+    tick() {
+      if (muted) return;
+      const now = getCtx().currentTime;
+      tone(1050, 'sine', now, 0.07, 0.12);
+    },
+  };
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const socket = io();
 const CIRCUMFERENCE = 2 * Math.PI * 36;  // r=36
 
@@ -22,6 +105,12 @@ function showScreen(name) {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 document.addEventListener('DOMContentLoaded', () => {
+  const muteBtn = document.getElementById('mute-btn');
+  muteBtn.textContent = SoundManager.muted ? '🔇' : '🔊';
+  muteBtn.addEventListener('click', () => {
+    muteBtn.textContent = SoundManager.toggleMute() ? '🔇' : '🔊';
+  });
+
   // Pre-fill from URL params (coming from home page)
   const params = new URLSearchParams(window.location.search);
   const preCode = params.get('code');
@@ -85,6 +174,7 @@ socket.on('question_start', data => {
   stopTimer();
   questionActive = true;
   showScreen('question');
+  SoundManager.questionDing();
 
   document.getElementById('q-counter').textContent = `Q ${data.q_num}/${data.total}`;
   document.getElementById('question-text').textContent = data.question;
@@ -106,6 +196,7 @@ socket.on('question_start', data => {
 socket.on('answer_result', data => {
   stopTimer();
   questionActive = false;
+  if (data.correct) SoundManager.correctChime(); else SoundManager.wrongBuzzer();
   showScreen('result');
 
   document.getElementById('result-icon').textContent = data.correct ? '🎉' : '😬';
@@ -144,6 +235,7 @@ function submitAnswer(idx, choices, _) {
   if (!questionActive) return;
   questionActive = false;
   stopTimer();
+  SoundManager.tapClick();
 
   // Disable all buttons
   document.querySelectorAll('.answer-btn').forEach(btn => {
@@ -174,8 +266,10 @@ function startTimer(seconds) {
     circle.style.strokeDashoffset = CIRCUMFERENCE * (1 - pct);
     text.textContent = remaining;
 
-    if (remaining <= 5) circle.style.stroke = '#e21b3c';
-    else if (remaining <= 10) circle.style.stroke = '#f0b000';
+    if (remaining <= 5) {
+      circle.style.stroke = '#e21b3c';
+      if (remaining > 0) SoundManager.tick();
+    } else if (remaining <= 10) circle.style.stroke = '#f0b000';
     else circle.style.stroke = 'white';
 
     if (remaining === 0) {

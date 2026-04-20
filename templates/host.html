@@ -13,10 +13,18 @@
       </div>
       <div id="hdr-set-name" style="opacity:0.6;font-size:0.85rem;font-weight:700;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
       <button class="btn btn-danger" id="btn-end-q" style="display:none;">End Question</button>
       <button class="btn btn-primary" id="btn-next" style="display:none;">Next Question →</button>
       <a href="/admin" class="btn btn-ghost" style="font-size:0.82rem;">← Admin</a>
+      <button id="mute-btn" aria-label="Toggle sound"
+        style="width:36px;height:36px;border-radius:50%;
+               background:rgba(255,255,255,0.12);
+               border:1px solid rgba(255,255,255,0.2);
+               cursor:pointer;font-size:1rem;line-height:1;
+               display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        🔊
+      </button>
     </div>
   </div>
 
