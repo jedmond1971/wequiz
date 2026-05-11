@@ -101,6 +101,120 @@ const SoundManager = (() => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ── ChatManager (host) ────────────────────────────────────────────────────────
+
+const CHAT_COLORS = ['#e21b3c','#1368ce','#d89e00','#26890c','#c084fc','#f97316','#06b6d4','#ec4899'];
+
+function chatNameColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xfffffff;
+  return CHAT_COLORS[h % CHAT_COLORS.length];
+}
+
+function timeAgo(ts) {
+  const diff = Math.floor(Date.now() / 1000 - ts);
+  if (diff < 10) return 'just now';
+  if (diff < 60) return `${diff}s ago`;
+  return `${Math.floor(diff / 60)}m ago`;
+}
+
+let chatOpen = false;
+let chatUnread = 0;
+let chatMsgCount = 0;
+const MAX_CHAT = 50;
+
+function initChat() {
+  document.getElementById('chat-fab').addEventListener('click', toggleChat);
+  document.getElementById('chat-close-btn').addEventListener('click', closeChat);
+  document.getElementById('chat-backdrop').addEventListener('click', closeChat);
+  document.getElementById('chat-send-btn').addEventListener('click', () => sendChatMsg());
+  document.getElementById('chat-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); sendChatMsg(); }
+  });
+  document.querySelectorAll('.chat-emoji-btn').forEach(btn => {
+    btn.addEventListener('click', () => sendChatMsg(btn.dataset.emoji));
+  });
+  document.getElementById('chat-clear-btn').addEventListener('click', () => {
+    socket.emit('chat_clear', { room_code: ROOM_CODE });
+  });
+}
+
+function toggleChat() { chatOpen ? closeChat() : openChat(); }
+
+function openChat() {
+  chatOpen = true;
+  document.getElementById('chat-drawer').classList.add('open');
+  document.getElementById('chat-backdrop').classList.add('open');
+  chatUnread = 0;
+  updateChatBadge();
+  scrollChatBottom();
+}
+
+function closeChat() {
+  chatOpen = false;
+  document.getElementById('chat-drawer').classList.remove('open');
+  document.getElementById('chat-backdrop').classList.remove('open');
+}
+
+function updateChatBadge() {
+  const badge = document.getElementById('chat-badge');
+  if (chatUnread > 0) {
+    badge.textContent = chatUnread > 99 ? '99+' : chatUnread;
+    badge.classList.remove('hidden');
+  } else {
+    badge.classList.add('hidden');
+  }
+}
+
+function sendChatMsg(override) {
+  const input = document.getElementById('chat-input');
+  const msg = (override !== undefined ? override : input.value).trim();
+  if (!msg) return;
+  socket.emit('chat_message', { room_code: ROOM_CODE, message: msg, isHost: true });
+  if (override === undefined) { input.value = ''; input.focus(); }
+}
+
+function appendChatMsg(entry) {
+  const { playerName, message, isHost, timestamp } = entry;
+  const list = document.getElementById('chat-messages');
+  const emptyEl = document.getElementById('chat-empty');
+  if (emptyEl) emptyEl.remove();
+
+  const color = isHost ? '#f59e0b' : chatNameColor(playerName);
+  const bg = color + '22';
+  const div = document.createElement('div');
+  div.className = 'chat-msg';
+  div.innerHTML =
+    `<div class="chat-msg-meta">` +
+      `<span class="chat-msg-name" style="color:${color};background:${bg}">${escHtml(playerName)}</span>` +
+      `<span class="chat-msg-time">${timeAgo(timestamp)}</span>` +
+    `</div>` +
+    `<div class="chat-msg-text">${escHtml(message)}</div>`;
+  list.appendChild(div);
+  chatMsgCount++;
+
+  if (chatMsgCount > MAX_CHAT) {
+    const first = list.querySelector('.chat-msg');
+    if (first) { first.remove(); chatMsgCount--; }
+  }
+
+  const atBottom = list.scrollHeight - list.scrollTop - list.clientHeight < 80;
+  if (atBottom || chatOpen) scrollChatBottom();
+}
+
+function scrollChatBottom() {
+  const list = document.getElementById('chat-messages');
+  list.scrollTop = list.scrollHeight;
+}
+
+function clearChatMsgs() {
+  chatMsgCount = 0;
+  document.getElementById('chat-messages').innerHTML =
+    '<div class="chat-empty" id="chat-empty">No messages yet</div>';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const socket = io();
 const CIRCUMFERENCE = 2 * Math.PI * 36;  // r=36
 
@@ -127,6 +241,8 @@ document.addEventListener('DOMContentLoaded', () => {
   muteBtn.addEventListener('click', () => {
     muteBtn.textContent = SoundManager.toggleMute() ? '🔇' : '🔊';
   });
+
+  initChat();
 
   document.getElementById('join-url').textContent =
     window.location.hostname + (window.location.port ? ':' + window.location.port : '');
@@ -322,6 +438,25 @@ function renderFinal(containerId, lb) {
     </div>
   `).join('');
 }
+
+// ── Chat socket events ────────────────────────────────────────────────────────
+
+socket.on('new_chat_message', entry => {
+  appendChatMsg(entry);
+  if (!chatOpen) {
+    chatUnread++;
+    updateChatBadge();
+  }
+});
+
+socket.on('chat_history', data => {
+  (data.messages || []).forEach(m => appendChatMsg(m));
+  scrollChatBottom();
+});
+
+socket.on('chat_cleared', () => {
+  clearChatMsgs();
+});
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 

@@ -89,6 +89,42 @@
       <a href="/admin" class="btn btn-primary btn-lg" style="margin-top:16px;">Back to Admin</a>
     </div>
   </div>
+
+  <!-- ── Chat FAB ──────────────────────────────────────────────────────── -->
+  <button id="chat-fab" class="chat-fab" aria-label="Open chat">
+    💬
+    <span id="chat-badge" class="chat-badge hidden">0</span>
+  </button>
+
+  <!-- ── Chat backdrop ────────────────────────────────────────────────── -->
+  <div id="chat-backdrop" class="chat-backdrop"></div>
+
+  <!-- ── Chat drawer ──────────────────────────────────────────────────── -->
+  <div id="chat-drawer" class="chat-drawer" role="dialog" aria-label="Group chat">
+    <div class="chat-drawer-header">
+      <span class="chat-drawer-title">💬 Group Chat</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="chat-clear-btn" id="chat-clear-btn">Clear</button>
+        <button class="chat-close-btn" id="chat-close-btn" aria-label="Close chat">✕</button>
+      </div>
+    </div>
+    <div class="chat-messages" id="chat-messages">
+      <div class="chat-empty" id="chat-empty">No messages yet</div>
+    </div>
+    <div class="chat-emoji-bar">
+      <button class="chat-emoji-btn" data-emoji="🔥">🔥</button>
+      <button class="chat-emoji-btn" data-emoji="😂">😂</button>
+      <button class="chat-emoji-btn" data-emoji="💀">💀</button>
+      <button class="chat-emoji-btn" data-emoji="👏">👏</button>
+      <button class="chat-emoji-btn" data-emoji="😬">😬</button>
+      <button class="chat-emoji-btn" data-emoji="🫡">🫡</button>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" class="chat-input" id="chat-input" maxlength="80"
+             placeholder="Say something…" autocomplete="off" autocorrect="off">
+      <button class="chat-send-btn" id="chat-send-btn">Send</button>
+    </div>
+  </div>
 </div>
 {% endblock %}
 

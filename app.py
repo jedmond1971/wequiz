@@ -169,6 +169,7 @@ def api_start_game():
         'players': {},           # sid -> {nickname, score}
         'q_start_time': None,
         'round_answers': {},     # sid -> {answer, correct, score}
+        'chat_log': [],          # [{playerName, message, isHost, timestamp}]
     }
     return jsonify({'room_code': code})
 
@@ -192,6 +193,8 @@ def on_host_connect(data):
         'players': [p['nickname'] for p in room['players'].values()],
         'state': room['state'],
     })
+    if room.get('chat_log'):
+        emit('chat_history', {'messages': room['chat_log']})
 
 
 @socketio.on('player_join')
@@ -223,6 +226,8 @@ def on_player_join(data):
     join_room(code)
 
     emit('join_success', {'nickname': nick, 'room_code': code})
+    if room.get('chat_log'):
+        emit('chat_history', {'messages': room['chat_log']})
     socketio.emit('player_joined', {
         'nickname': nick,
         'players': [p['nickname'] for p in room['players'].values()],
@@ -321,6 +326,50 @@ def on_disconnect():
         if room.get('host_sid') == request.sid:
             room['host_sid'] = None
             break
+
+
+@socketio.on('chat_message')
+def on_chat_message(data):
+    code = data.get('room_code', '').upper()
+    if code not in rooms:
+        return
+    room = rooms[code]
+    is_host = bool(data.get('isHost'))
+    message = str(data.get('message', '')).strip()[:80]
+    if not message:
+        return
+
+    if is_host:
+        if room.get('host_sid') != request.sid:
+            return
+        player_name = 'Host 🎤'
+    else:
+        if request.sid not in room['players']:
+            return
+        player_name = room['players'][request.sid]['nickname']
+
+    entry = {
+        'playerName': player_name,
+        'message': message,
+        'isHost': is_host,
+        'timestamp': time.time(),
+    }
+    room['chat_log'].append(entry)
+    if len(room['chat_log']) > 50:
+        room['chat_log'] = room['chat_log'][-50:]
+
+    socketio.emit('new_chat_message', entry, to=code)
+
+
+@socketio.on('chat_clear')
+def on_chat_clear(data):
+    code = data.get('room_code', '').upper()
+    if code not in rooms:
+        return
+    if rooms[code].get('host_sid') != request.sid:
+        return
+    rooms[code]['chat_log'] = []
+    socketio.emit('chat_cleared', {}, to=code)
 
 
 # ── Game logic ────────────────────────────────────────────────────────────────
