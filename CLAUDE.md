@@ -91,3 +91,26 @@ After each question ends, a 3-second reveal screen appears on both host and play
 - On the player view, the current player's own chip is outlined for self-identification
 
 The `show_leaderboard` event payload includes `correct_players` and `wrong_players` string lists (built in `_end_question` from `room['round_answers']`; players who didn't answer are counted as wrong).
+
+### Group chat
+
+A persistent in-room chat is available to all participants from lobby through game over. Messages are kept in `room['chat_log']` (rolling 50-message list) and cleared when the room is destroyed on restart.
+
+**Socket events:**
+- `chat_message` (client → server): `{ room_code, message, isHost }` — server validates sender, enforces 80-char cap, appends to `chat_log`, broadcasts `new_chat_message` with `{ playerName, message, isHost, timestamp }` to all in room
+- `chat_clear` (host → server): clears `chat_log`, broadcasts `chat_cleared` to all clients
+- `chat_history` (server → joining client): emitted on `player_join` success and `host_connect` with the current `chat_log` so late joiners see prior messages
+
+**UI — both views:**
+- Fixed 💬 FAB (bottom-right, `z-index: 930`) with an unread badge counter
+- Bottom sheet on mobile (42% height, slides up); fixed 300px sidebar on desktop (`@media (min-width: 640px)`)
+- Quick-tap emoji bar: 🔥 😂 💀 👏 😬 🫡
+- Name labels use a consistent hash-based colour from an 8-colour palette; host messages always appear in gold (`#f59e0b`)
+- FAB is hidden on `play.html` until after `join_success`
+
+**Player-specific behaviour:**
+- Input and emoji buttons are **disabled during active questions** (`questionActive === true`) with placeholder "Answer the question first! ⏳"; re-enabled on `answer_result`, `show_leaderboard`, `game_over`, or timer expiry
+
+**Host-specific behaviour:**
+- Input is never disabled; messages are labelled "Host 🎤"
+- "Clear" button in the drawer header emits `chat_clear`
