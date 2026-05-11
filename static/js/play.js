@@ -78,6 +78,15 @@ const SoundManager = (() => {
       const now = getCtx().currentTime;
       tone(1050, 'sine', now, 0.07, 0.12);
     },
+
+    reveal() {
+      if (muted) return;
+      const now = getCtx().currentTime;
+      // Rising arpeggio: C4 E4 G4 C5
+      [262, 330, 392, 523].forEach((freq, i) => {
+        tone(freq, 'sine', now + i * 0.09, i < 3 ? 0.09 : 0.40, 0.38);
+      });
+    },
   };
 })();
 
@@ -93,7 +102,7 @@ let questionActive = false;
 
 // ── Screens ───────────────────────────────────────────────────────────────────
 
-const SCREENS = ['join', 'lobby', 'question', 'result', 'leaderboard', 'final'];
+const SCREENS = ['join', 'lobby', 'question', 'result', 'reveal', 'leaderboard', 'final'];
 
 function showScreen(name) {
   SCREENS.forEach(s => {
@@ -211,8 +220,12 @@ socket.on('answer_result', data => {
 socket.on('show_leaderboard', data => {
   stopTimer();
   questionActive = false;
-  showScreen('leaderboard');
-  renderLeaderboard('leaderboard-list', data.leaderboard, data.correct_text, nickname);
+  showReveal(data);
+  SoundManager.reveal();
+  setTimeout(() => {
+    showScreen('leaderboard');
+    renderLeaderboard('leaderboard-list', data.leaderboard, data.correct_text, nickname);
+  }, 3000);
 });
 
 socket.on('game_over', data => {
@@ -291,6 +304,40 @@ function startTimer(seconds) {
 
 function stopTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ── Reveal screen ─────────────────────────────────────────────────────────────
+
+function showReveal(data) {
+  showScreen('reveal');
+  document.getElementById('reveal-answer-text').textContent = data.correct_text;
+
+  const correctChips = (data.correct_players || []).map((n, i) => {
+    const isMe = n === nickname;
+    return `<div class="reveal-chip reveal-chip-correct${isMe ? ' reveal-chip-you' : ''}"
+      style="animation-delay:${i * 70}ms">${escHtml(n)}</div>`;
+  }).join('');
+
+  const wrongChips = (data.wrong_players || []).map((n, i) => {
+    const isMe = n === nickname;
+    return `<div class="reveal-chip reveal-chip-wrong${isMe ? ' reveal-chip-you' : ''}"
+      style="animation-delay:${i * 70}ms">${escHtml(n)}</div>`;
+  }).join('');
+
+  const correct = data.correct_players || [];
+  const wrong = data.wrong_players || [];
+  document.getElementById('reveal-groups').innerHTML = `
+    ${correct.length > 0 ? `
+      <div class="reveal-group reveal-group-correct">
+        <div class="reveal-group-header">🎉 Got it! (${correct.length})</div>
+        <div class="reveal-chips">${correctChips}</div>
+      </div>` : ''}
+    ${wrong.length > 0 ? `
+      <div class="reveal-group reveal-group-wrong">
+        <div class="reveal-group-header">😬 Missed it (${wrong.length})</div>
+        <div class="reveal-chips">${wrongChips}</div>
+      </div>` : ''}
+  `;
 }
 
 // ── Leaderboard rendering ─────────────────────────────────────────────────────

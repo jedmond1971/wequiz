@@ -376,10 +376,22 @@ def _end_question(code):
     room['state'] = 'leaderboard'
     q = room['questions'][room['current_q']]
     is_last = room['current_q'] >= len(room['questions']) - 1
+
+    correct_players, wrong_players = [], []
+    for sid, ans in room['round_answers'].items():
+        if sid in room['players']:
+            nick = room['players'][sid]['nickname']
+            (correct_players if ans['correct'] else wrong_players).append(nick)
+    for sid, player in room['players'].items():
+        if sid not in room['round_answers']:
+            wrong_players.append(player['nickname'])
+
     socketio.emit('show_leaderboard', {
         'leaderboard': get_leaderboard(room),
         'correct_answer': q['correct'],
         'correct_text': q['choices'][q['correct']],
+        'correct_players': correct_players,
+        'wrong_players': wrong_players,
         'is_last': is_last,
     }, to=code)
 

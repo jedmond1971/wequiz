@@ -432,6 +432,82 @@ select option { background: var(--purple-dark); color: white; }
   margin-top: 8px;
 }
 
+/* ── Answer reveal screen ─────────────────────────────────────────────────── */
+.reveal-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  gap: 14px;
+  text-align: center;
+  overflow-y: auto;
+}
+.reveal-check {
+  font-size: 3.5rem;
+  line-height: 1;
+  animation: bounce-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.reveal-answer-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.7;
+}
+.reveal-answer-text {
+  font-size: clamp(1.2rem, 4vw, 2rem);
+  font-weight: 900;
+  color: #86efac;
+  text-shadow: 0 0 30px rgba(134,239,172,0.5);
+  animation: reveal-pop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  max-width: 600px;
+  line-height: 1.2;
+}
+@keyframes reveal-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+.reveal-groups {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  max-width: 640px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.reveal-group {
+  flex: 1;
+  min-width: 130px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.reveal-group-correct { border: 1px solid rgba(134,239,172,0.35); }
+.reveal-group-wrong   { border: 1px solid rgba(255,100,100,0.2); }
+.reveal-group-header {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.reveal-chips { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+.reveal-chip {
+  padding: 3px 11px;
+  border-radius: 50px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  animation: pop-in 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.reveal-chip-correct { background: rgba(134,239,172,0.2); color: #86efac; }
+.reveal-chip-wrong   { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.6); }
+.reveal-chip-you     { outline: 2px solid currentColor; font-weight: 900; }
+
 /* ── Leaderboard ──────────────────────────────────────────────────────────── */
 .leaderboard-screen {
   flex: 1;

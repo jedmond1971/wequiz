@@ -110,7 +110,7 @@ let totalPlayers = 0;
 
 // ── Screens ───────────────────────────────────────────────────────────────────
 
-const screens = ['lobby', 'question', 'leaderboard', 'final'];
+const screens = ['lobby', 'question', 'reveal', 'leaderboard', 'final'];
 
 function showScreen(name) {
   screens.forEach(s => {
@@ -197,23 +197,17 @@ socket.on('answer_count', data => {
 socket.on('show_leaderboard', data => {
   stopTimer();
   document.getElementById('btn-end-q').style.display = 'none';
+  showScreen('reveal');
+  showReveal(data);
 
-  // Highlight correct choice on question screen
-  document.querySelectorAll('.host-choice').forEach(el => {
-    const idx = parseInt(el.dataset.idx);
-    el.classList.toggle('correct-choice', idx === data.correct_answer);
-  });
-
-  // Short delay to show correct answer, then go to leaderboard
   setTimeout(() => {
     showScreen('leaderboard');
     SoundManager.leaderboard();
     renderLeaderboard('host-lb', data.leaderboard, data.correct_text, data.is_last);
-
     if (!data.is_last) {
       document.getElementById('btn-next').style.display = 'inline-flex';
     }
-  }, 1500);
+  }, 3000);
 });
 
 socket.on('game_over', data => {
@@ -269,6 +263,34 @@ function startTimer(seconds) {
 
 function stopTimer() {
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+// ── Reveal screen ─────────────────────────────────────────────────────────────
+
+function showReveal(data) {
+  document.getElementById('host-reveal-answer-text').textContent = data.correct_text;
+
+  const correctChips = (data.correct_players || []).map((n, i) =>
+    `<div class="reveal-chip reveal-chip-correct" style="animation-delay:${i * 60}ms">${escHtml(n)}</div>`
+  ).join('');
+  const wrongChips = (data.wrong_players || []).map((n, i) =>
+    `<div class="reveal-chip reveal-chip-wrong" style="animation-delay:${i * 60}ms">${escHtml(n)}</div>`
+  ).join('');
+
+  const correct = data.correct_players || [];
+  const wrong = data.wrong_players || [];
+  document.getElementById('host-reveal-groups').innerHTML = `
+    ${correct.length > 0 ? `
+      <div class="reveal-group reveal-group-correct">
+        <div class="reveal-group-header">🎉 Got it! (${correct.length})</div>
+        <div class="reveal-chips">${correctChips}</div>
+      </div>` : ''}
+    ${wrong.length > 0 ? `
+      <div class="reveal-group reveal-group-wrong">
+        <div class="reveal-group-header">😬 Missed it (${wrong.length})</div>
+        <div class="reveal-chips">${wrongChips}</div>
+      </div>` : ''}
+  `;
 }
 
 // ── Leaderboard rendering ─────────────────────────────────────────────────────
