@@ -28,7 +28,7 @@ Everything lives in `app.py`: Flask HTTP routes, REST API, and all SocketIO even
 4. Players go to `/play`, emit `player_join` with room code + nickname
 5. Host emits `host_start_game` → server calls `_send_next_question(code)` in a loop
 6. Each question: server emits `question_start` to the room, starts a background timer task via `socketio.start_background_task`; players submit via `submit_answer`; question ends either when all players answer (1.5s delay) or time expires
-7. Server emits `show_leaderboard` → host advances → repeat until all questions done → `game_over`
+7. Server emits `show_leaderboard` → clients show **reveal screen** (3s) then leaderboard → host advances → repeat until all questions done → `game_over`
 
 ### SocketIO rooms
 
@@ -63,8 +63,8 @@ Each game uses two SocketIO rooms:
 ### Frontend JS files
 
 - `admin.js` — SPA for managing question sets; holds full set state in a `sets` array in memory; writes to server on every change via `PUT /api/sets/<id>`
-- `host.js` — manages host screen transitions (lobby → question → leaderboard → final); `ROOM_CODE` is injected as a global from the template
-- `play.js` — manages player screen transitions; supports auto-join via `?code=X&nick=Y` URL params
+- `host.js` — manages host screen transitions (lobby → question → **reveal** → leaderboard → final); `ROOM_CODE` is injected as a global from the template
+- `play.js` — manages player screen transitions (join → lobby → question → result → **reveal** → leaderboard → final); supports auto-join via `?code=X&nick=Y` URL params
 
 ### Timer
 
@@ -78,6 +78,16 @@ Both `host.js` and `play.js` contain a `SoundManager` IIFE at the top. All sound
 - Mute state persists in `localStorage` under the key `wequiz_muted` (shared between host and player so the preference carries across screens).
 - A mute toggle button (`🔊/🔇`) is rendered in both `host.html` and `play.html`.
 
-**play.js sounds:** `questionDing` (question appears), `tapClick` (answer tapped), `correctChime` / `wrongBuzzer` (result), `tick` (countdown ≤5s).
+**play.js sounds:** `questionDing` (question appears), `tapClick` (answer tapped), `correctChime` / `wrongBuzzer` (result), `tick` (countdown ≤5s), `reveal` (answer reveal screen).
 
-**host.js sounds:** `playerJoin` (lobby), `gameStart` (start button), `questionReveal` (question live), `leaderboard` (results screen), `gameOver` (final screen).
+**host.js sounds:** `playerJoin` (lobby), `gameStart` (start button), `questionReveal` (question live), `leaderboard` (leaderboard screen), `gameOver` (final screen).
+
+### Answer reveal screen
+
+After each question ends, a 3-second reveal screen appears on both host and player views before the leaderboard. It shows:
+- The correct answer text in green with a pop animation
+- Two chip groups: **🎉 Got it!** (correct players) and **😬 Missed it** (wrong/unanswered)
+- Players listed as animated chips with staggered pop-in delays
+- On the player view, the current player's own chip is outlined for self-identification
+
+The `show_leaderboard` event payload includes `correct_players` and `wrong_players` string lists (built in `_end_question` from `room['round_answers']`; players who didn't answer are counted as wrong).
