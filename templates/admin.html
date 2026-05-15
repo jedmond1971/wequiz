@@ -40,6 +40,31 @@
       <div id="no-questions" class="hidden" style="text-align:center;opacity:0.45;padding:32px;font-weight:700;">
         No questions yet. Click "+ Add Question" to start.
       </div>
+
+      <!-- AI Question Generator -->
+      <div style="margin-top:24px;padding:20px;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+        <h3 style="font-size:0.95rem;font-weight:800;margin-bottom:14px;opacity:0.85;letter-spacing:0.02em;">✨ AI Question Generator</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:2;min-width:160px;">
+            <label style="display:block;font-size:0.8rem;font-weight:700;opacity:0.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Category</label>
+            <input type="text" id="gen-category" placeholder="e.g. Ancient Rome, 90s Pop Music" style="width:100%;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;min-width:110px;">
+            <label style="display:block;font-size:0.8rem;font-weight:700;opacity:0.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Difficulty</label>
+            <select id="gen-difficulty" style="width:100%;padding:10px 12px;border-radius:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:inherit;font-size:0.95rem;">
+              <option value="easy">Easy</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div style="flex:0 0 80px;">
+            <label style="display:block;font-size:0.8rem;font-weight:700;opacity:0.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Count</label>
+            <input type="number" id="gen-count" value="10" min="1" max="30" style="width:100%;box-sizing:border-box;">
+          </div>
+          <button class="btn btn-primary" id="btn-generate">✨ Generate</button>
+        </div>
+        <div id="gen-status" class="hidden" style="margin-top:12px;font-size:0.9rem;"></div>
+      </div>
     </div>
   </main>
 </div>

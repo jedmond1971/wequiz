@@ -105,6 +105,12 @@ function bindEvents() {
     if (e.key === 'Enter') saveSetName();
   });
 
+  // AI generator
+  document.getElementById('btn-generate').addEventListener('click', generateQuestions);
+  document.getElementById('gen-category').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generateQuestions();
+  });
+
   // Question modal
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
   document.getElementById('modal-save').addEventListener('click', saveQuestion);
@@ -260,6 +266,51 @@ async function deleteQuestion(qid) {
   await saveQuestionsToServer();
   renderQuestionList();
   renderSetsGrid();
+}
+
+// ── AI Question Generator ─────────────────────────────────────────────────────
+
+async function generateQuestions() {
+  const category = document.getElementById('gen-category').value.trim();
+  const difficulty = document.getElementById('gen-difficulty').value;
+  const count = parseInt(document.getElementById('gen-count').value) || 10;
+  const statusEl = document.getElementById('gen-status');
+  const btn = document.getElementById('btn-generate');
+
+  if (!category) {
+    statusEl.innerHTML = '<div class="error-msg">Please enter a category.</div>';
+    statusEl.classList.remove('hidden');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating…';
+  statusEl.innerHTML = '<div style="opacity:0.6;">Asking AI for questions — this may take a few seconds…</div>';
+  statusEl.classList.remove('hidden');
+
+  try {
+    const res = await fetch('/admin/generate-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ set_id: editingSetId, category, difficulty, count }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      statusEl.innerHTML = `<div class="error-msg">${escHtml(data.error || 'Generation failed.')}</div>`;
+      return;
+    }
+    const setsRes = await fetch('/api/sets');
+    sets = await setsRes.json();
+    renderQuestionList();
+    renderSetsGrid();
+    statusEl.innerHTML = `<div class="success-msg">✓ ${data.added} question${data.added !== 1 ? 's' : ''} added!</div>`;
+    setTimeout(() => statusEl.classList.add('hidden'), 4000);
+  } catch (e) {
+    statusEl.innerHTML = '<div class="error-msg">Request failed. Check your connection and try again.</div>';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Generate';
+  }
 }
 
 // ── Start game ────────────────────────────────────────────────────────────────

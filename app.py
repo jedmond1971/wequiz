@@ -201,6 +201,81 @@ def api_delete_set(set_id):
     return jsonify({'ok': True})
 
 
+@app.route('/admin/generate-questions', methods=['POST'])
+def admin_generate_questions():
+    if (err := require_admin()):
+        return err
+
+    body = request.json or {}
+    set_id = body.get('set_id')
+    category = str(body.get('category', '')).strip()
+    difficulty = body.get('difficulty', 'medium')
+    count = max(1, min(30, int(body.get('count', 10))))
+
+    if not set_id or not category:
+        return jsonify({'error': 'set_id and category are required'}), 400
+    if difficulty not in ('easy', 'medium', 'hard'):
+        difficulty = 'medium'
+    set_data = _get_set(set_id)
+    if not set_data:
+        return jsonify({'error': 'Question set not found'}), 404
+
+    import anthropic
+    client = anthropic.Anthropic()
+
+    system = (
+        'You are a quiz question generator. Respond with a JSON array only — no markdown, '
+        'no explanation. Each element must have: "text" (question string), '
+        '"choices" (array of exactly 4 answer strings), '
+        '"correct" (0-based index of the correct answer: 0, 1, 2, or 3), '
+        '"time_limit" (integer seconds, 10–30 based on difficulty).'
+    )
+    prompt = (
+        f'Generate {count} {difficulty}-difficulty multiple-choice trivia questions '
+        f'about: {category}. Return a JSON array only.'
+    )
+
+    try:
+        message = client.messages.create(
+            model='claude-opus-4-7',
+            max_tokens=4096,
+            system=system,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+    except Exception as e:
+        return jsonify({'error': f'AI request failed: {str(e)}'}), 502
+
+    raw = message.content[0].text.strip()
+    if raw.startswith('```'):
+        raw = raw.split('\n', 1)[1]
+        raw = raw.rsplit('```', 1)[0].strip()
+
+    try:
+        generated = json.loads(raw)
+        if not isinstance(generated, list):
+            raise ValueError('Expected a JSON array')
+    except Exception as e:
+        return jsonify({'error': f'Could not parse AI response: {str(e)}'}), 502
+
+    new_questions = []
+    for q in generated:
+        choices = list(q.get('choices', []))[:4]
+        if len(choices) < 4 or not q.get('text'):
+            continue
+        new_questions.append({
+            'id': str(uuid.uuid4()),
+            'text': str(q['text']),
+            'choices': choices,
+            'correct': max(0, min(3, int(q.get('correct', 0)))),
+            'time_limit': max(10, min(30, int(q.get('time_limit', 20)))),
+        })
+
+    updated = set_data['questions'] + new_questions
+    _update_set(set_id, {'questions': updated})
+
+    return jsonify({'added': len(new_questions), 'questions': new_questions})
+
+
 @app.route('/api/start-game', methods=['POST'])
 def api_start_game():
     if (err := require_admin()):
