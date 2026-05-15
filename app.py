@@ -8,6 +8,8 @@ import string
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit, join_room
 
+import db
+
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'wequiz-secret-change-me')
 socketio = SocketIO(app, cors_allowed_origins='*', async_mode='eventlet')
@@ -18,8 +20,11 @@ QUESTIONS_FILE = 'data/questions.json'
 # In-memory game rooms: room_code -> room_state
 rooms = {}
 
+if db.USE_DB:
+    db.init_schema()
 
-# ── Data helpers ──────────────────────────────────────────────────────────────
+
+# ── JSON fallback helpers ─────────────────────────────────────────────────────
 
 def load_data():
     if not os.path.exists(QUESTIONS_FILE):
@@ -33,6 +38,71 @@ def _write_data(data):
     os.makedirs('data', exist_ok=True)
     with open(QUESTIONS_FILE, 'w') as f:
         json.dump(data, f, indent=2)
+
+
+# ── Storage wrappers (DB when available, JSON otherwise) ──────────────────────
+
+def _get_all_sets():
+    if db.USE_DB:
+        return db.db_get_all_sets()
+    return load_data()['sets']
+
+
+def _create_set(name):
+    if db.USE_DB:
+        return db.db_create_set(name)
+    data = load_data()
+    new_set = {'id': str(uuid.uuid4()), 'name': name, 'questions': []}
+    data['sets'].append(new_set)
+    _write_data(data)
+    return new_set
+
+
+def _get_set(set_id):
+    if db.USE_DB:
+        return db.db_get_set(set_id)
+    return next((s for s in load_data()['sets'] if s['id'] == set_id), None)
+
+
+def _update_set(set_id, body):
+    if db.USE_DB:
+        return db.db_update_set(set_id, body)
+    data = load_data()
+    for s in data['sets']:
+        if s['id'] == set_id:
+            if 'name' in body:
+                s['name'] = body['name']
+            if 'questions' in body:
+                s['questions'] = body['questions']
+            _write_data(data)
+            return s
+    return None
+
+
+def _delete_set(set_id):
+    if db.USE_DB:
+        db.db_delete_set(set_id)
+        return
+    data = load_data()
+    data['sets'] = [s for s in data['sets'] if s['id'] != set_id]
+    _write_data(data)
+
+
+def _get_questions_for_game(set_id):
+    """Return questions in rotation order (DB) or shuffled (JSON fallback)."""
+    if db.USE_DB:
+        return db.db_get_questions_for_game(set_id)
+    qs = _get_set(set_id)
+    if not qs:
+        return None
+    questions = list(qs['questions'])
+    random.shuffle(questions)
+    return questions
+
+
+def _record_session(set_id, room_code, question_ids):
+    if db.USE_DB:
+        db.db_record_session(set_id, room_code, question_ids)
 
 
 def gen_room_code():
@@ -76,6 +146,27 @@ def admin_logout():
     return redirect(url_for('index'))
 
 
+@app.route('/admin/run-seed')
+def admin_run_seed():
+    if (err := require_admin()):
+        return err
+    if not db.USE_DB:
+        return 'DATABASE_URL is not set — nothing to seed.\n', 400, {'Content-Type': 'text/plain'}
+    from migrate import seed_from_json
+    try:
+        r = seed_from_json(db.DATABASE_URL)
+    except FileNotFoundError:
+        return 'data/questions.json not found — nothing to seed.\n', 404, {'Content-Type': 'text/plain'}
+    lines = [
+        'Seed complete.',
+        f"  Sets imported:  {r['imported_sets']}",
+        f"  Sets skipped:   {r['skipped_sets']} (already in database)",
+        f"  Questions imported: {r['imported_questions']}",
+        '',
+    ]
+    return '\n'.join(lines), 200, {'Content-Type': 'text/plain'}
+
+
 @app.route('/host/<room_code>')
 def host_view(room_code):
     if not session.get('admin'):
@@ -102,48 +193,32 @@ def require_admin():
 def api_get_sets():
     if (err := require_admin()):
         return err
-    return jsonify(load_data()['sets'])
+    return jsonify(_get_all_sets())
 
 
 @app.route('/api/sets', methods=['POST'])
 def api_create_set():
     if (err := require_admin()):
         return err
-    data = load_data()
-    new_set = {
-        'id': str(uuid.uuid4()),
-        'name': (request.json or {}).get('name', 'Untitled Set'),
-        'questions': [],
-    }
-    data['sets'].append(new_set)
-    _write_data(data)
-    return jsonify(new_set), 201
+    name = (request.json or {}).get('name', 'Untitled Set')
+    return jsonify(_create_set(name)), 201
 
 
 @app.route('/api/sets/<set_id>', methods=['PUT'])
 def api_update_set(set_id):
     if (err := require_admin()):
         return err
-    data = load_data()
-    for s in data['sets']:
-        if s['id'] == set_id:
-            body = request.json or {}
-            if 'name' in body:
-                s['name'] = body['name']
-            if 'questions' in body:
-                s['questions'] = body['questions']
-            _write_data(data)
-            return jsonify(s)
-    return jsonify({'error': 'Not found'}), 404
+    result = _update_set(set_id, request.json or {})
+    if result is None:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(result)
 
 
 @app.route('/api/sets/<set_id>', methods=['DELETE'])
 def api_delete_set(set_id):
     if (err := require_admin()):
         return err
-    data = load_data()
-    data['sets'] = [s for s in data['sets'] if s['id'] != set_id]
-    _write_data(data)
+    _delete_set(set_id)
     return jsonify({'ok': True})
 
 
@@ -152,18 +227,18 @@ def api_start_game():
     if (err := require_admin()):
         return err
     set_id = (request.json or {}).get('set_id')
-    data = load_data()
-    qs = next((s for s in data['sets'] if s['id'] == set_id), None)
+    qs = _get_set(set_id)
     if not qs:
         return jsonify({'error': 'Question set not found'}), 404
     if not qs.get('questions'):
         return jsonify({'error': 'Add at least one question before starting'}), 400
 
+    questions = _get_questions_for_game(set_id)
     code = gen_room_code()
     rooms[code] = {
         'host_sid': None,
         'question_set': qs,
-        'questions': qs['questions'],
+        'questions': questions,
         'current_q': -1,
         'state': 'lobby',        # lobby | question | leaderboard | finished
         'players': {},           # sid -> {nickname, score}
@@ -171,6 +246,7 @@ def api_start_game():
         'round_answers': {},     # sid -> {answer, correct, score}
         'chat_log': [],          # [{playerName, message, isHost, timestamp}]
     }
+    _record_session(set_id, code, [q['id'] for q in questions])
     return jsonify({'room_code': code})
 
 
