@@ -113,9 +113,6 @@ function bindEvents() {
   document.getElementById('gen-set-name').addEventListener('keydown', e => {
     if (e.key === 'Enter') generateQuestions();
   });
-  document.getElementById('gen-category').addEventListener('keydown', e => {
-    if (e.key === 'Enter') generateQuestions();
-  });
 
   // Question modal
   document.getElementById('modal-cancel').addEventListener('click', closeModal);
@@ -278,7 +275,6 @@ async function deleteQuestion(qid) {
 
 async function generateQuestions() {
   const setName = document.getElementById('gen-set-name').value.trim();
-  const category = document.getElementById('gen-category').value.trim();
   const difficulty = document.getElementById('gen-difficulty').value;
   const count = parseInt(document.getElementById('gen-count').value) || 10;
   const statusEl = document.getElementById('gen-status');
@@ -286,11 +282,6 @@ async function generateQuestions() {
 
   if (!setName) {
     statusEl.innerHTML = '<div class="error-msg">Please enter a set name.</div>';
-    statusEl.classList.remove('hidden');
-    return;
-  }
-  if (!category) {
-    statusEl.innerHTML = '<div class="error-msg">Please enter a category.</div>';
     statusEl.classList.remove('hidden');
     return;
   }
@@ -317,7 +308,7 @@ async function generateQuestions() {
     const res = await fetch('/admin/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ set_id: targetSet.id, category, difficulty, count }),
+      body: JSON.stringify({ set_id: targetSet.id, category: setName, difficulty, count }),
     });
     const data = await res.json();
     if (!res.ok) {
