@@ -24,27 +24,17 @@
       </div>
     </div>
 
-    <!-- Set editor (shown when editing a set) -->
-    <div id="set-editor" class="set-editor hidden">
-      <div class="set-editor-header">
-        <div>
-          <input id="editor-set-name" type="text" style="font-size:1.1rem;font-weight:800;padding:8px 12px;border-radius:8px;max-width:300px;" placeholder="Set name">
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn btn-primary" id="btn-add-question">+ Add Question</button>
-          <button class="btn btn-ghost" id="btn-save-set">Save Name</button>
-          <button class="btn btn-ghost" id="btn-close-editor" style="opacity:0.6;">✕ Close</button>
-        </div>
-      </div>
-      <div class="question-list" id="question-list"></div>
-      <div id="no-questions" class="hidden" style="text-align:center;opacity:0.45;padding:32px;font-weight:700;">
-        No questions yet. Click "+ Add Question" to start.
-      </div>
-
-      <!-- AI Question Generator -->
-      <div style="margin-top:24px;padding:20px;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
-        <h3 style="font-size:0.95rem;font-weight:800;margin-bottom:14px;opacity:0.85;letter-spacing:0.02em;">✨ AI Question Generator</h3>
+    <!-- AI Question Generator -->
+    <div style="margin-top:32px;">
+      <h2 style="font-size:1.2rem;font-weight:800;opacity:0.75;margin-bottom:4px;">✨ Generate Questions</h2>
+      <p style="font-size:0.85rem;opacity:0.5;margin-bottom:12px;">Use AI to bulk-generate questions. Type an existing set name to add to it, or a new name to create it automatically.</p>
+      <div style="padding:20px;background:rgba(255,255,255,0.05);border-radius:12px;border:1px solid rgba(255,255,255,0.1);">
+        <datalist id="gen-set-list"></datalist>
         <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+          <div style="flex:2;min-width:160px;">
+            <label style="display:block;font-size:0.8rem;font-weight:700;opacity:0.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Set Name</label>
+            <input type="text" id="gen-set-name" list="gen-set-list" placeholder="Existing or new set name" style="width:100%;box-sizing:border-box;">
+          </div>
           <div style="flex:2;min-width:160px;">
             <label style="display:block;font-size:0.8rem;font-weight:700;opacity:0.6;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">Category</label>
             <input type="text" id="gen-category" placeholder="e.g. Ancient Rome, 90s Pop Music" style="width:100%;box-sizing:border-box;">
@@ -64,6 +54,24 @@
           <button class="btn btn-primary" id="btn-generate">✨ Generate</button>
         </div>
         <div id="gen-status" class="hidden" style="margin-top:12px;font-size:0.9rem;"></div>
+      </div>
+    </div>
+
+    <!-- Set editor (shown when editing a set) -->
+    <div id="set-editor" class="set-editor hidden">
+      <div class="set-editor-header">
+        <div>
+          <input id="editor-set-name" type="text" style="font-size:1.1rem;font-weight:800;padding:8px 12px;border-radius:8px;max-width:300px;" placeholder="Set name">
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-add-question">+ Add Question</button>
+          <button class="btn btn-ghost" id="btn-save-set">Save Name</button>
+          <button class="btn btn-ghost" id="btn-close-editor" style="opacity:0.6;">✕ Close</button>
+        </div>
+      </div>
+      <div class="question-list" id="question-list"></div>
+      <div id="no-questions" class="hidden" style="text-align:center;opacity:0.45;padding:32px;font-weight:700;">
+        No questions yet. Click "+ Add Question" to start.
       </div>
     </div>
   </main>

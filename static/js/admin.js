@@ -47,6 +47,9 @@ function renderSetsGrid() {
       </div>
     </div>
   `).join('');
+
+  document.getElementById('gen-set-list').innerHTML =
+    sets.map(s => `<option value="${escHtml(s.name)}">`).join('');
 }
 
 function renderQuestionList() {
@@ -107,6 +110,9 @@ function bindEvents() {
 
   // AI generator
   document.getElementById('btn-generate').addEventListener('click', generateQuestions);
+  document.getElementById('gen-set-name').addEventListener('keydown', e => {
+    if (e.key === 'Enter') generateQuestions();
+  });
   document.getElementById('gen-category').addEventListener('keydown', e => {
     if (e.key === 'Enter') generateQuestions();
   });
@@ -271,12 +277,18 @@ async function deleteQuestion(qid) {
 // ── AI Question Generator ─────────────────────────────────────────────────────
 
 async function generateQuestions() {
+  const setName = document.getElementById('gen-set-name').value.trim();
   const category = document.getElementById('gen-category').value.trim();
   const difficulty = document.getElementById('gen-difficulty').value;
   const count = parseInt(document.getElementById('gen-count').value) || 10;
   const statusEl = document.getElementById('gen-status');
   const btn = document.getElementById('btn-generate');
 
+  if (!setName) {
+    statusEl.innerHTML = '<div class="error-msg">Please enter a set name.</div>';
+    statusEl.classList.remove('hidden');
+    return;
+  }
   if (!category) {
     statusEl.innerHTML = '<div class="error-msg">Please enter a category.</div>';
     statusEl.classList.remove('hidden');
@@ -289,22 +301,39 @@ async function generateQuestions() {
   statusEl.classList.remove('hidden');
 
   try {
+    // Find existing set by name (case-insensitive) or create a new one
+    let targetSet = sets.find(s => s.name.toLowerCase() === setName.toLowerCase());
+    const isNew = !targetSet;
+    if (isNew) {
+      const createRes = await fetch('/api/sets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: setName }),
+      });
+      targetSet = await createRes.json();
+      sets.push(targetSet);
+    }
+
     const res = await fetch('/admin/generate-questions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ set_id: editingSetId, category, difficulty, count }),
+      body: JSON.stringify({ set_id: targetSet.id, category, difficulty, count }),
     });
     const data = await res.json();
     if (!res.ok) {
       statusEl.innerHTML = `<div class="error-msg">${escHtml(data.error || 'Generation failed.')}</div>`;
       return;
     }
+
     const setsRes = await fetch('/api/sets');
     sets = await setsRes.json();
-    renderQuestionList();
     renderSetsGrid();
-    statusEl.innerHTML = `<div class="success-msg">✓ ${data.added} question${data.added !== 1 ? 's' : ''} added!</div>`;
-    setTimeout(() => statusEl.classList.add('hidden'), 4000);
+
+    const destination = isNew
+      ? `in new set "<strong>${escHtml(setName)}</strong>"`
+      : `added to "<strong>${escHtml(setName)}</strong>"`;
+    statusEl.innerHTML = `<div class="success-msg">✓ ${data.added} question${data.added !== 1 ? 's' : ''} ${destination}!</div>`;
+    setTimeout(() => statusEl.classList.add('hidden'), 5000);
   } catch (e) {
     statusEl.innerHTML = '<div class="error-msg">Request failed. Check your connection and try again.</div>';
   } finally {
