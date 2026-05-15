@@ -223,6 +223,15 @@ def admin_generate_questions():
     import anthropic
     client = anthropic.Anthropic()
 
+    existing_questions = set_data.get('questions', [])
+    existing_block = ''
+    if existing_questions:
+        existing_list = '\n'.join(f'- {q["text"]}' for q in existing_questions)
+        existing_block = (
+            f'\n\nThe set already contains these questions — do not generate anything '
+            f'that is the same or substantially similar to any of them:\n{existing_list}'
+        )
+
     system = (
         'You are a quiz question generator. Respond with a JSON array only — no markdown, '
         'no explanation. Each element must have: "text" (question string), '
@@ -232,7 +241,7 @@ def admin_generate_questions():
     )
     prompt = (
         f'Generate {count} {difficulty}-difficulty multiple-choice trivia questions '
-        f'about: {category}. Return a JSON array only.'
+        f'about: {category}. Return a JSON array only.{existing_block}'
     )
 
     try:
