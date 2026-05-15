@@ -146,27 +146,6 @@ def admin_logout():
     return redirect(url_for('index'))
 
 
-@app.route('/admin/run-seed')
-def admin_run_seed():
-    if (err := require_admin()):
-        return err
-    if not db.USE_DB:
-        return 'DATABASE_URL is not set — nothing to seed.\n', 400, {'Content-Type': 'text/plain'}
-    from migrate import seed_from_json
-    try:
-        r = seed_from_json(db.DATABASE_URL)
-    except FileNotFoundError:
-        return 'data/questions.json not found — nothing to seed.\n', 404, {'Content-Type': 'text/plain'}
-    lines = [
-        'Seed complete.',
-        f"  Sets imported:  {r['imported_sets']}",
-        f"  Sets skipped:   {r['skipped_sets']} (already in database)",
-        f"  Questions imported: {r['imported_questions']}",
-        '',
-    ]
-    return '\n'.join(lines), 200, {'Content-Type': 'text/plain'}
-
-
 @app.route('/host/<room_code>')
 def host_view(room_code):
     if not session.get('admin'):
