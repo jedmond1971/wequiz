@@ -14,11 +14,32 @@ Admin panel: `/admin` — default password `admin123` (set `ADMIN_PASSWORD` env 
 
 ## Deploying
 
-Push to `main` → Railway auto-deploys via `Procfile`. Set `ADMIN_PASSWORD` and `SECRET_KEY` env vars in Railway dashboard. The Procfile uses gunicorn with a single eventlet worker — **do not increase to multiple workers**, as game state is in-memory and not shared between processes.
+Push to `main` → Railway auto-deploys via `Procfile`. Set `ADMIN_PASSWORD`, `SECRET_KEY`, `DATABASE_URL`, and `ANTHROPIC_API_KEY` env vars in Railway dashboard. The Procfile uses gunicorn with a single eventlet worker — **do not increase to multiple workers**, as game state is in-memory and not shared between processes.
 
 ## Architecture
 
-Everything lives in `app.py`: Flask HTTP routes, REST API, and all SocketIO event handlers. No database — question sets persist in `data/questions.json`; active game rooms live in the `rooms = {}` dict in memory and are lost on restart.
+Everything lives in `app.py`: Flask HTTP routes, REST API, and all SocketIO event handlers. Active game rooms live in the `rooms = {}` dict in memory and are lost on restart.
+
+### Storage
+
+Two modes, selected automatically via the `DATABASE_URL` env var:
+
+- **PostgreSQL** (when `DATABASE_URL` is set) — `db.py` handles all CRUD via psycopg2. `db.USE_DB = True`. Schema is created at startup via `init_schema()`.
+- **JSON fallback** (no `DATABASE_URL`) — question sets persist in `data/questions.json`.
+
+All HTTP routes call thin wrapper functions (`_get_set`, `_update_set`, etc.) that dispatch to the right backend. Never call `db.*` or JSON helpers directly from routes.
+
+**Schema** (PostgreSQL):
+- `question_sets (id TEXT PK, name TEXT)`
+- `questions (id TEXT PK, set_id FK→question_sets CASCADE, text, choices JSONB, correct INT, time_limit INT, position INT)`
+- `game_sessions (id TEXT PK, set_id TEXT, room_code TEXT, played_at TIMESTAMPTZ)` — no FK on set_id (historical data)
+- `session_questions (session_id FK→game_sessions CASCADE, question_id TEXT)` — no FK on question_id (preserves rotation history when questions are edited)
+
+Question IDs are TEXT (not UUID) because `admin.js` creates new questions with `'q_' + Date.now()`. AI-generated questions use `str(uuid.uuid4())`.
+
+**Question rotation** (`db_get_questions_for_game`): questions ordered by `MAX(played_at) ASC NULLS FIRST`, then shuffled within tied groups via `itertools.groupby`. This surfaces least-recently-used questions first.
+
+**Migration**: `migrate.py` creates tables (`python migrate.py`) and optionally seeds from `data/questions.json` (`python migrate.py --seed`). Safe to import — no side effects at module level.
 
 ### Game flow
 
@@ -62,7 +83,7 @@ Each game uses two SocketIO rooms:
 
 ### Frontend JS files
 
-- `admin.js` — SPA for managing question sets; holds full set state in a `sets` array in memory; writes to server on every change via `PUT /api/sets/<id>`
+- `admin.js` — SPA for managing question sets; holds full set state in a `sets` array in memory; writes to server on every change via `PUT /api/sets/<id>`; includes AI question generator (see below)
 - `host.js` — manages host screen transitions (lobby → question → **reveal** → leaderboard → final); `ROOM_CODE` is injected as a global from the template
 - `play.js` — manages player screen transitions (join → lobby → question → result → **reveal** → leaderboard → final); supports auto-join via `?code=X&nick=Y` URL params
 
@@ -114,3 +135,13 @@ A persistent in-room chat is available to all participants from lobby through ga
 **Host-specific behaviour:**
 - Input is never disabled; messages are labelled "Host 🎤"
 - "Clear" button in the drawer header emits `chat_clear`
+
+### AI question generator
+
+`POST /admin/generate-questions` (admin-only) accepts `{ set_id, category, difficulty, count }` and calls `claude-opus-4-7` to generate multiple-choice questions. Requires `ANTHROPIC_API_KEY` env var.
+
+- Fetches existing questions for the set first and includes their texts in the prompt to avoid duplicates
+- Parses the JSON array response, validates each question, and appends them to the set via `_update_set`
+- Returns `{ added, questions }`
+
+**Admin UI** (`admin.html` / `admin.js`): standalone **✨ Generate Questions** section on the main admin page (not inside the set editor). Fields: Set Name (autocompletes from existing sets), Difficulty, Count. If the set name matches an existing set, questions are added to it; otherwise a new set is created automatically.
