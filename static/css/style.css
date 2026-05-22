@@ -1127,3 +1127,159 @@ select option { background: var(--purple-dark); color: white; }
   transition: background 0.1s;
 }
 .chat-clear-btn:hover { background: rgba(226,27,60,0.2); color: #fca5a5; }
+
+/* ── Solo mode ────────────────────────────────────────────────────────────── */
+
+.solo-question-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.solo-score-chip {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #c084fc;
+  text-align: right;
+  min-width: 60px;
+  white-space: nowrap;
+}
+
+/* Reveal footer — slides up after each answer */
+.solo-reveal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  background: rgba(0,0,0,0.35);
+  border-top: 1px solid rgba(255,255,255,0.1);
+  animation: slide-up 0.25s cubic-bezier(0.34,1.15,0.64,1);
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+.solo-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.solo-feedback-icon { font-size: 1.4rem; line-height: 1; }
+
+.solo-feedback-correct { color: #86efac; }
+.solo-feedback-wrong   { color: #fca5a5; }
+
+/* Answer grid extra bottom padding when reveal footer is open */
+.reveal-open {
+  padding-bottom: 0;
+}
+
+/* Final screen */
+.solo-final-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 20px;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.solo-final-score-label {
+  font-size: 2rem;
+  font-weight: 900;
+  text-align: center;
+}
+
+.solo-final-pts {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #c084fc;
+  margin-bottom: 4px;
+}
+
+.solo-final-review {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.solo-final-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Per-question review items */
+.solo-review-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  animation: slide-in 0.3s ease both;
+}
+
+.solo-review-correct { border-color: rgba(134,239,172,0.25); }
+.solo-review-wrong   { border-color: rgba(252,165,165,0.2); }
+
+.solo-review-num {
+  font-size: 0.75rem;
+  font-weight: 900;
+  opacity: 0.45;
+  flex-shrink: 0;
+  padding-top: 2px;
+  min-width: 20px;
+}
+
+.solo-review-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.solo-review-qtext {
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.solo-review-answer {
+  font-size: 0.78rem;
+  font-weight: 600;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.solo-review-chose { opacity: 0.85; }
+.solo-review-right { color: #86efac; }
+
+.solo-review-result {
+  font-size: 0.85rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  padding-top: 2px;
+  white-space: nowrap;
+}
+
+.solo-review-icon-correct { color: #86efac; }
+.solo-review-icon-wrong   { color: #fca5a5; }

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}WeQuiz — Solo Mode{% endblock %}
+
+{% block body %}
+<div id="app">
+
+  <!-- ── SETUP screen ─────────────────────────────────────────────────────── -->
+  <div id="screen-setup" class="page">
+    <div class="logo">We<span>Quiz</span></div>
+    <p class="home-subtitle">Solo Mode</p>
+    <div class="card" style="max-width:460px;">
+      <h2>Play Solo</h2>
+      <form id="setup-form" autocomplete="off" novalidate>
+        <div class="form-group">
+          <label for="solo-name">Your Name</label>
+          <input id="solo-name" type="text" placeholder="Enter your name" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label for="solo-set">Question Set</label>
+          <select id="solo-set">
+            <option value="">Loading…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="solo-count">Number of Questions</label>
+          <input id="solo-count" type="number" min="1" max="10" value="10" style="width:100%;">
+        </div>
+        <div id="setup-error" class="error-msg hidden"></div>
+        <div style="height:12px"></div>
+        <button type="submit" class="btn btn-success btn-full btn-lg" id="start-btn" disabled>
+          Start →
+        </button>
+      </form>
+    </div>
+    <p class="home-admin-link"><a href="/">← Back to Home</a></p>
+  </div>
+
+  <!-- ── QUESTION screen ─────────────────────────────────────────────────── -->
+  <div id="screen-question" class="solo-question-screen hidden">
+    <div class="question-header">
+      <div class="q-counter" id="q-counter">Q 1/10</div>
+      <div class="timer-wrap">
+        <svg viewBox="0 0 80 80">
+          <circle class="timer-track" cx="40" cy="40" r="36"/>
+          <circle class="timer-progress" id="timer-circle" cx="40" cy="40" r="36"/>
+        </svg>
+        <span class="timer-text" id="timer-text">20</span>
+      </div>
+      <div class="solo-score-chip" id="solo-score-chip">0 pts</div>
+    </div>
+    <div class="question-body">
+      <div class="question-text" id="question-text"></div>
+    </div>
+    <div class="answer-grid" id="answer-grid">
+      <button class="answer-btn" data-idx="0"><span class="answer-shape">▲</span><span id="choice-0-text"></span></button>
+      <button class="answer-btn" data-idx="1"><span class="answer-shape">◆</span><span id="choice-1-text"></span></button>
+      <button class="answer-btn" data-idx="2"><span class="answer-shape">●</span><span id="choice-2-text"></span></button>
+      <button class="answer-btn" data-idx="3"><span class="answer-shape">■</span><span id="choice-3-text"></span></button>
+    </div>
+    <div id="reveal-footer" class="solo-reveal-footer hidden">
+      <div id="reveal-feedback" class="solo-feedback"></div>
+      <button id="next-btn" class="btn btn-primary btn-lg" onclick="nextQuestion()">Next →</button>
+    </div>
+  </div>
+
+  <!-- ── FINAL screen ─────────────────────────────────────────────────────── -->
+  <div id="screen-final" class="page-full hidden" style="background:none;">
+    <div class="solo-final-screen">
+      <div class="trophy">🏆</div>
+      <div class="solo-final-score-label" id="final-score-label">0 / 0 Correct</div>
+      <div class="solo-final-pts" id="final-pts">0 pts</div>
+      <div class="solo-final-review" id="final-review"></div>
+      <div class="solo-final-actions">
+        <button class="btn btn-success btn-lg" onclick="playAgain()">Play Again</button>
+        <a href="/" class="btn btn-ghost btn-lg">Home</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Mute toggle ─────────────────────────────────────────────────────── -->
+  <button id="mute-btn" aria-label="Toggle sound"
+    style="position:fixed;top:12px;right:12px;z-index:1000;
+           width:38px;height:38px;border-radius:50%;
+           background:rgba(255,255,255,0.15);backdrop-filter:blur(4px);
+           border:1px solid rgba(255,255,255,0.2);
+           cursor:pointer;font-size:1rem;line-height:1;
+           display:flex;align-items:center;justify-content:center;">
+    🔊
+  </button>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/solo.js') }}"></script>
+{% endblock %}

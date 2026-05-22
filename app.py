@@ -160,6 +160,29 @@ def play():
     return render_template('play.html')
 
 
+@app.route('/solo')
+def solo():
+    return render_template('solo.html')
+
+
+@app.route('/api/public/sets', methods=['GET'])
+def api_public_sets():
+    sets = _get_all_sets()
+    return jsonify([{
+        'id': s['id'],
+        'name': s['name'],
+        'question_count': len(s.get('questions', [])),
+    } for s in sets])
+
+
+@app.route('/api/public/sets/<set_id>', methods=['GET'])
+def api_public_set(set_id):
+    s = _get_set(set_id)
+    if not s:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(s)
+
+
 # ── API routes ────────────────────────────────────────────────────────────────
 
 def require_admin():
