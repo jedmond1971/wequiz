@@ -86,14 +86,17 @@ Each game uses two SocketIO rooms:
 - `admin.js` — SPA for managing question sets; holds full set state in a `sets` array in memory; writes to server on every change via `PUT /api/sets/<id>`; includes AI question generator (see below)
 - `host.js` — manages host screen transitions (lobby → question → **reveal** → leaderboard → final); `ROOM_CODE` is injected as a global from the template
 - `play.js` — manages player screen transitions (join → lobby → question → result → **reveal** → leaderboard → final); supports auto-join via `?code=X&nick=Y` URL params
+- `solo.js` — fully client-side solo mode; fetches questions from `/api/public/sets/<id>`, shuffles and slices them, runs the timer and scoring loop independently of SocketIO
 
 ### Timer
 
 Client-side only (animated SVG ring, `r=36`, `circumference=226`). The server runs its own independent timer via `_question_timer` background task — the client timer is purely cosmetic. Color changes: white → amber at ≤10s → red at ≤5s.
 
+In solo mode the client timer is authoritative (no server timer).
+
 ### Sound effects
 
-Both `host.js` and `play.js` contain a `SoundManager` IIFE at the top. All sounds are generated via Web Audio API (`AudioContext` + `OscillatorNode`) — no audio files.
+`host.js`, `play.js`, and `solo.js` each contain a `SoundManager` IIFE at the top. All sounds are generated via Web Audio API (`AudioContext` + `OscillatorNode`) — no audio files.
 
 - AudioContext is pre-warmed on the first user gesture (`click`/`touchstart`/`keydown`) so that socket-driven sounds don't hit the browser autoplay block.
 - Mute state persists in `localStorage` under the key `wequiz_muted` (shared between host and player so the preference carries across screens).
@@ -135,6 +138,16 @@ A persistent in-room chat is available to all participants from lobby through ga
 **Host-specific behaviour:**
 - Input is never disabled; messages are labelled "Host 🎤"
 - "Clear" button in the drawer header emits `chat_clear`
+
+### Solo mode
+
+Entry point: `GET /solo` renders `solo.html` / `solo.js`. No SocketIO — entirely client-side.
+
+**Public API** (no admin auth required):
+- `GET /api/public/sets` → `[{id, name, question_count}]`
+- `GET /api/public/sets/<id>` → full set with questions
+
+**Flow**: setup screen (name + set picker + count) → question screen → per-question reveal footer → final screen with per-question review. Questions are Fisher-Yates shuffled and sliced to the chosen count. Scoring is identical to multiplayer. Solo scores are not persisted.
 
 ### AI question generator
 
